@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Report Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #4a4a4a;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 1.5rem;
+        }
+        .logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 1rem;
+        }
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 1.75rem;
+        }
+        button {
+            background-color: #3498db; color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: background-color 0.2s;
+            font-weight: 500;
+        }
+        button:hover { background-color: #2980b9; }
+        .card {
+            background-color: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        #cell-config-container .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto; /* Label, Button, Status */
+            gap: 1rem 1.5rem;
+            align-items: center;
+        }
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #dadce0;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        #error-message {
+            color: #d93025;
+            margin-top: 1rem;
+        }
+        #loader {
+            display: none; /* Hidden by default */
+            margin: 1rem auto;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <!-- === YOUR LOGO GOES HERE === -->
+            <!-- Replace this SVG with your own <img src="path/to/your/logo.png"> -->
+            <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50,5A45,45,0,1,1,5,50,45,45,0,0,1,50,5M50,0a50,50,0,1,0,50,50A50,50,0,0,0,50,0Z" fill="#3498db"/>
+                <path d="M50,25L75,75H25Z" fill="#2c3e50"/>
+            </svg>
+            <h1>Student Report Generator</h1>
+        </div>
+
+        <div id="config" class="card">
+            <label for="fileInput">1. Select an Excel file to display:</label>
+            <input type="file" id="fileInput" accept=".xls, .xlsx">
+
+            <label for="logoInput" style="margin-top: 1rem;">2. Select a logo for the PDF header (optional):</label>
+            <input type="file" id="logoInput" accept="image/png, image/jpeg">
+        </div>
+
+        <div id="sheet-selector-container" class="card" style="display: none;">
+            <label for="sheetSelector">3. Select a sheet to display:</label>
+            <select id="sheetSelector"></select>
+        </div>
+
+        <div id="cell-config-container" class="card" style="display: none;">
+            <h4>4. PDF Generation Settings</h4>
+            <p style="font-size: 0.9em; color: #5f6368;">Click a button, then click the corresponding cell/column in the table below.</p>
+            <div class="settings-grid">
+                <label for="setTopicHeaderBtn">Topic Header Row:</label>
+                <button id="setTopicHeaderBtn">Select Row</button>
+                <span id="topicHeaderRowDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setFirstStudentBtn">First Student Row:</label>
+                <button id="setFirstStudentBtn">Select Row</button>
+                <span id="firstStudentRowDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setGuidanceRowBtn">Guidance Row (for QR codes):</label>
+                <button id="setGuidanceRowBtn">Select Row</button>
+                <span id="guidanceRowDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setMaxScoreRowBtn">Max Score Row:</label>
+                <button id="setMaxScoreRowBtn">Select Row</button>
+                <span id="maxScoreRowDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setGradeColBtn">Grade Column:</label>
+                <button id="setGradeColBtn">Select Column</button>
+                <span id="gradeColDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setFirstTopicBtn">First Topic Column:</label>
+                <button id="setFirstTopicBtn">Select Column</button>
+                <span id="firstTopicColDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+
+                <label for="setLastTopicBtn">Last Topic Column:</label>
+                <button id="setLastTopicBtn">Select Column</button>
+                <span id="lastTopicColDisplay" style="font-weight: bold; min-width: 60px; text-align: right;">Not Set</span>
+            </div>
+        </div>
+
+        <div id="loader"></div>
+        <div id="error-message"></div>
+        <div id="output-controls" style="display: none; margin-top: 2rem; text-align: center;">
+            <button id="generatePdfButton">Generate PDFs for Students</button>
+        </div>
+        <div id="data-container"></div>
+    </div>
+
+    <!-- SheetJS library for parsing Excel files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF library for creating PDF documents -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable plugin for creating tables in PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- QR Code Generator library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
